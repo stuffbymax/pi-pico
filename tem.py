@@ -139,9 +139,15 @@ def control_neopixel(temp):
     elif temp <= 40:
         np[0] = (255, 255, 0)  # Yellow
     else:
-        np[0] = (255, 0, 0)  # Red
+        # Blink Red if temp > 40
+        for _ in range(5):  # Blink 5 times
+            np[0] = (255, 0, 0)  # Red ON
+            np.write()
+            time.sleep(0.5)  # Stay ON for 0.5s
+            np[0] = (0, 0, 0)  # OFF
+            np.write()
+            time.sleep(0.5)  # Stay OFF for 0.5s
         activate_buzzer()  # Activate buzzer if temp > 40°C
-    np.write()
 
 # Function to activate buzzer
 def activate_buzzer():
@@ -153,7 +159,7 @@ def activate_buzzer():
 while True:
     update_oled()
 
-    if time.time() - last_save_time >= 3600:  # Save data every hour
+    if time.time() - last_save_time >= 1800:  # Save data every hour
         save_temperature_data()
 
     time.sleep(0.05) # Reduced sleep time for smoother animation (adjust as needed)
