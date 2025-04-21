@@ -14,7 +14,7 @@ sensor = bmp280.BMP280(i2c_bmp280)
 oled = ssd1306.SSD1306_I2C(128, 64, i2c_oled)
 
 # Initialize NeoPixel (using GPIO 28)
-np = neopixel.NeoPixel(Pin(28), 1)  # 1 NeoPixel on GPIO 28
+np = neopixel.NeoPixel(Pin(28), 15)  # 1 NeoPixel on GPIO 28
 
 # Initialize Buzzer (PWM on GPIO 18)
 buzzer = PWM(Pin(18))
@@ -48,6 +48,7 @@ animation_direction = -1       # Direction: -1 for left, 1 for right
 animation_speed = 1          # Pixels to move per frame
 animation_right_boundary = 128 - 10 - 2 # Rightmost X position
 animation_left_boundary = 2      # Leftmost X position
+previous_temp = 0.0          # Store the previous temperature value
 # --- End Animation Movement Variables ---
 
 
@@ -95,13 +96,13 @@ def draw_temperature_animation(oled, temp, x_pos, y_pos): # Added x_pos and y_po
 
 # Function to update the OLED display
 def update_oled():
-    global animation_x_pos, animation_direction # Declare globals to modify them
+    global animation_x_pos, animation_direction, previous_temp # Declare globals to modify them
 
     current_time = time.localtime()
     year, month, day, hours, minutes, seconds, _, _ = time.localtime()
 
     date_time_str = f"{year}-{month:02}-{day:02} {hours:02}:{minutes:02}:{seconds:02}"
-    #print(f"Time: {date_time_str} | Temp: {temp:.2f} C | Pressure: {pressure:.2f} Pa")
+    #print(f"Current time: {date_time_str}")
     temp = sensor.temperature
     pressure = sensor.pressure
 
@@ -117,6 +118,12 @@ def update_oled():
     control_neopixel(temp)
 
     # --- Update Animation Position ---
+    # Compare the current temperature with the previous temperature
+    if temp > previous_temp:
+        animation_direction = 1  # Move right
+    elif temp < previous_temp:
+        animation_direction = -1  # Move left
+
     animation_x_pos += animation_direction * animation_speed
 
     # Check boundaries and reverse direction
@@ -126,6 +133,9 @@ def update_oled():
     elif animation_x_pos >= animation_right_boundary:
         animation_x_pos = animation_right_boundary
         animation_direction = -1 # Move left
+
+    # Update previous temperature
+    previous_temp = temp
     # --- End Update Animation Position ---
 
 
@@ -135,9 +145,9 @@ def control_neopixel(temp):
         np[0] = (0, 0, 255)  # Blue
     elif temp <= 20:
         np[0] = (0, 0, 128)  # Light Blue
-    elif temp <= 21:
+    elif temp <= 30:
         np[0] = (128, 50, 0)  # Soft Orange
-    elif temp <= 26:
+    elif temp <= 40:
         np[0] = (255, 255, 0)  # Yellow
     else:
         # Blink Red if temp > 40
@@ -147,9 +157,7 @@ def control_neopixel(temp):
             time.sleep(0.005)  # Stay ON for 0.5s
             np[0] = (0, 0, 0)  # OFF
             np.write()  # Update the NeoPixel to OFF state
-            time.sleep(0.0005)  # Stay OFF for 0.
-            oled.text('Waring hightTemp', 0,50 )
-            oled.show()  # Update the OLED to show the text
+            time.sleep(0.0005)  # Stay OFF for 0.5s
         activate_buzzer()  # Activate buzzer if temp > 40°C
         return  # Exit the function once blinking is done to avoid overwriting the color
 
@@ -166,4 +174,4 @@ while True:
     if time.time() - last_save_time >= 1800:  # Save data every 30 minutes
         save_temperature_data()
 
-    time.sleep(0.05) # Reduced sleep time for smoother animation (adjust as needed
+    time.sleep(0.05) # Reduced sleep time for smoother animation (adjust as needed)
