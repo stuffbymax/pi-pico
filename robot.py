@@ -15,36 +15,26 @@ from PicoRobotics import KitronikPicoRobotics
 # Initialize robot
 board = KitronikPicoRobotics()
 
-# Connect to Wi-Fi
-def connect_wifi(ssid, password):
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    if not wlan.isconnected():
-        print(f"Connecting to network '{ssid}'...")
-        wlan.connect(ssid, password)
+# make wifi host
+def start_access_point(ssid="PicoRobot", password="pico1234"):
+    ap = network.WLAN(network.AP_IF)
+    ap.config(essid=ssid, password=password)
+    ap.active(True)
 
-        max_wait = 15  # seconds
-        while not wlan.isconnected() and max_wait > 0:
-            print(".", end="")
-            time.sleep(1)
-            max_wait -= 1
+    # Optional: set static IP
+    ap.ifconfig(('192.168.4.1', '255.255.255.0', '192.168.4.1', '8.8.8.8'))
 
-        if wlan.isconnected():
-            print("\nConnected! Network config:", wlan.ifconfig())
-            return wlan
-        else:
-            print("\nConnection failed.")
-            return None
-    else:
-        print("Already connected. Network config:", wlan.ifconfig())
-        return wlan
+    print(f"Access Point '{ssid}' started.")
+    print("IP address:", ap.ifconfig()[0])
 
-# Replace with your credentials
-ssid = 'test'
-password = 'martin12345'
+    # Wait until active
+    while not ap.active():
+        time.sleep(1)
+    print("AP is active!")
+    return ap
 
-wlan = connect_wifi(ssid, password)
-
+# Start AP instead of connecting to Wi-Fi
+ap = start_access_point()
 # Set up
 num_leds = 12
 pin = machine.Pin(0)  # GP0, change if using a different pin
