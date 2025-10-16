@@ -1,0 +1,223 @@
+import network
+import time
+from machine import Pin, SoftI2C
+import ssd1306
+from bmp280 import BMP280
+import socket
+import _thread
+import urandom
+
+# ---------- Wi-Fi AP ----------
+def start_access_point(ssid="clockwatch", password="pico1234"):
+    ap = network.WLAN(network.AP_IF)
+    ap.config(essid=ssid, password=password)
+    ap.active(True)
+    ap.ifconfig(('192.168.4.1', '255.255.255.0', '192.168.4.1', '8.8.8.8'))
+    print(f"Access Point '{ssid}' started. IP: {ap.ifconfig()[0]}")
+    while not ap.active():
+        time.sleep(1)
+    return ap
+
+ap = start_access_point()
+
+# ---------- I2C Setup ----------
+i2c_bmp = SoftI2C(sda=Pin(26), scl=Pin(27), freq=100000)
+bmp = BMP280(i2c_bmp, addr=0x76)
+
+i2c_oled = SoftI2C(sda=Pin(0), scl=Pin(1), freq=400000)
+oled = ssd1306.SSD1306_I2C(128, 64, i2c_oled, addr=0x3C)
+
+# ---------- Mode & Snake ----------
+mode = "CLOCK"
+snake_dir = "RIGHT"
+snake_dir_next = "RIGHT"  # Prevent reversing
+SEG_SIZE = 4
+MAX_X = 128 // SEG_SIZE
+MAX_Y = 64 // SEG_SIZE
+
+snake = []
+food = []
+score = 0
+snake_initialized = False
+
+def init_snake():
+    global snake, food, score, snake_dir, snake_dir_next, snake_initialized
+    snake = [[2,2],[1,2],[0,2]]
+    food = [urandom.getrandbits(7)%MAX_X, urandom.getrandbits(6)%MAX_Y]
+    score = 0
+    snake_dir = "RIGHT"
+    snake_dir_next = "RIGHT"
+    snake_initialized = True
+
+def draw_snake():
+    oled.fill(0)
+    for seg in snake:
+        x, y = seg
+        for dx in range(SEG_SIZE):
+            for dy in range(SEG_SIZE):
+                oled.pixel(x*SEG_SIZE+dx, y*SEG_SIZE+dy, 1)
+    # Draw food
+    fx, fy = food
+    for dx in range(SEG_SIZE):
+        for dy in range(SEG_SIZE):
+            oled.pixel(fx*SEG_SIZE+dx, fy*SEG_SIZE+dy, 1)
+    # Draw score
+    oled.text("Score:{}".format(score), 0, 0)
+    oled.show()
+
+def move_snake():
+    global snake, food, score, snake_dir
+    head = snake[0][:]
+    snake_dir = snake_dir_next
+
+    if snake_dir == "UP":
+        head[1] -= 1
+    elif snake_dir == "DOWN":
+        head[1] += 1
+    elif snake_dir == "LEFT":
+        head[0] -= 1
+    elif snake_dir == "RIGHT":
+        head[0] += 1
+
+    # Wrap around
+    head[0] %= MAX_X
+    head[1] %= MAX_Y
+
+    # Collision with self
+    if head in snake:
+        init_snake()
+        return
+
+    snake.insert(0, head)
+
+    # Check for food
+    if head == food:
+        score += 1
+        food = [urandom.getrandbits(7)%MAX_X, urandom.getrandbits(6)%MAX_Y]
+    else:
+        snake.pop()
+
+# ---------- Web Server ----------
+def web_server():
+    global mode, snake_dir_next, snake_initialized, score
+    addr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
+    s = socket.socket()
+    s.bind(addr)
+    s.listen(1)
+    print("Web server running at 192.168.4.1")
+
+    while True:
+        cl, addr_client = s.accept()
+        request = cl.recv(1024)
+        request = str(request)
+
+        # Serve live data
+        if "/data" in request:
+            if mode == "TEMP":
+                temp = bmp.temperature
+                pres = bmp.pressure
+                response_data = "Temp: {:.1f}°C<br>Pres: {:.1f} hPa".format(temp, pres)
+            elif mode == "CLOCK":
+                t = time.localtime()
+                current_time = "{:02d}:{:02d}:{:02d}".format(t[3], t[4], t[5])
+                date = "{:04d}-{:02d}-{:02d}".format(t[0], t[1], t[2])
+                response_data = "Time: {}<br>Date: {}".format(current_time, date)
+            elif mode == "SNAKE":
+                response_data = "Score: {}".format(score)
+            else:
+                response_data = ""
+            cl.send("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}".format(response_data))
+            cl.close()
+            continue
+
+        # Mode selection
+        if "/mode=clock" in request:
+            mode = "CLOCK"
+        elif "/mode=temperature" in request:
+            mode = "TEMP"
+        elif "/mode=snake" in request:
+            mode = "SNAKE"
+            if not snake_initialized:
+                init_snake()
+
+        # Snake controls
+        if "/action?dir=UP" in request and snake_dir != "DOWN":
+            snake_dir_next = "UP"
+        elif "/action?dir=DOWN" in request and snake_dir != "UP":
+            snake_dir_next = "DOWN"
+        elif "/action?dir=LEFT" in request and snake_dir != "RIGHT":
+            snake_dir_next = "LEFT"
+        elif "/action?dir=RIGHT" in request and snake_dir != "LEFT":
+            snake_dir_next = "RIGHT"
+
+        # HTML page with live data update
+        response = """HTTP/1.1 200 OK
+Content-Type: text/html
+
+<html>
+<head>
+<title>PicoRobot Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="text-align:center; font-family:sans-serif; margin:0; padding:0;">
+<h1>Mode: {}</h1>
+<p id="data" style="font-size:24px;"></p>
+
+<div style="display:grid; grid-template-columns:120px 120px 120px; justify-content:center; align-items:center; margin:20px;">
+<button onclick="window.location='/mode=clock'" style="width:140px;height:70px;margin:12px;font-size:22px;border-radius:20px;">Clock</button>
+<button onclick="window.location='/mode=temperature'" style="width:140px;height:70px;margin:12px;font-size:22px;border-radius:20px;">Temp</button>
+<button onclick="window.location='/mode=snake'" style="width:140px;height:70px;margin:12px;font-size:22px;border-radius:20px;">Snake</button>
+</div>
+
+<p>
+<button onclick="fetch('/action?dir=UP')" style="width:120px;height:90px;margin:12px;font-size:22px;border-radius:20px;">UP</button><br>
+<button onclick="fetch('/action?dir=LEFT')" style="width:100px;height:90px;margin:12px;font-size:22px;border-radius:20px;">LEFT</button>
+<button onclick="fetch('/action?dir=DOWN')" style="width:100px;height:90px;margin:12px;font-size:22px;border-radius:20px;">DOWN</button>
+<button onclick="fetch('/action?dir=RIGHT')" style="width:100px;height:90px;margin:12px;font-size:22px;border-radius:20px;">RIGHT</button>
+</p>
+
+<script>
+function updateData() {{
+    fetch('/data').then(resp => resp.text()).then(data => {{
+        document.getElementById('data').innerHTML = data;
+    }});
+}}
+setInterval(updateData, 500);
+updateData(); // initial call
+</script>
+
+</body>
+</html>
+""".format(mode)
+
+        cl.send(response)
+        cl.close()
+
+_thread.start_new_thread(web_server, ())
+
+# ---------- Main Loop ----------
+while True:
+    if mode == "TEMP":
+        oled.fill(0)
+        temp = bmp.temperature
+        pres = bmp.pressure
+        oled.text("Temp:{:.1f}C".format(temp), 0, 8)
+        oled.text("Pres:{:.1f}hPa".format(pres), 0, 25)
+        if hasattr(bmp, "altitude"):
+            alt = bmp.altitude
+            oled.text("Alt:{:.1f}m".format(alt), 0, 40)
+        oled.show()
+    elif mode == "CLOCK":
+        oled.fill(0)
+        t = time.localtime()
+        current_time = "{:02d}:{:02d}:{:02d}".format(t[3], t[4], t[5])
+        date = "{:04d}-{:02d}-{:02d}".format(t[0], t[1], t[2])
+        oled.text("Clock", 0, 8)
+        oled.text(current_time, 0, 30)
+        oled.text(date, 0, 45)
+        oled.show()
+    elif mode == "SNAKE":
+        move_snake()
+        draw_snake()
+    time.sleep(0.2)
+
