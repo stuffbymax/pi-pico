@@ -1,5 +1,4 @@
-# this code is only for testing Pi pico 2 w and it was writen by AI but it used exiten code
-
+# this code is only for testing Pi pico and it was created by ai by using  my existing code 
 
 from machine import Pin, I2C, PWM
 import time
