@@ -20,12 +20,12 @@ import sys
 
 # ---------- Configuration ----------
 # --- Wi-Fi Credentials ---
-WIFI_SSID = "GRAIN_6334"
-WIFI_PASSWORD = "B7P48B8Y7P"
+WIFI_SSID = ""
+WIFI_PASSWORD = ""
 
 # --- OpenWeatherMap API ---
-OPENWEATHERMAP_API_KEY = "caa3c5a3121630838545026f24db4c34"
-CITY = "Halifax,uk"
+OPENWEATHERMAP_API_KEY = ""
+CITY = ""
 
 # ---------- Network Setup ----------
 def connect_wifi(ssid, password):
