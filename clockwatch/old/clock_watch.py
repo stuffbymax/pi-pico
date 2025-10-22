@@ -220,4 +220,3 @@ while True:
         move_snake()
         draw_snake()
     time.sleep(0.2)
-
