@@ -1,7 +1,7 @@
 # SDOS port for pi pico
 # crearor martinP
 
-
+# to do make a http server that has has input bar to function as keyboard
 # ===============================
 # Pico SDOS MicroPython Terminal
 # ===============================
@@ -202,7 +202,7 @@ def boot_sequence():
     oled_print("Pi pico")
     utime.sleep(0.3)
     oled_print("'_'")
-    utime.sleep(0.1)
+    utime.sleep(0.01)
     
     oled_clear()
 # ---------- Fake File System ----------
