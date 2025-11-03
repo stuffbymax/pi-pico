@@ -1,3 +1,7 @@
+# SDOS port for pi pico
+# crearor martinP
+
+
 # ===============================
 # Pico SDOS MicroPython Terminal
 # ===============================
@@ -43,26 +47,57 @@ osBootSequence = [
     "Type:"
     "ARM",
     "PERSONAL COMPUTER SYSTEM",
-    "ROM BIOS VERSION 2.43.07 COPYRIGHT (C) 1987-1996 CC INDUSTRIES",
-    "------------------------------------------------------------",
-    "SYSTEM MEMORY TESTING .................... 640K OK",
-    "EXTENDED MEMORY CHECK .................... 16384K OK",
-    "CACHE MEMORY ............................. ENABLED",
-    "KEYBOARD CONTROLLER ...................... OK",
-    "FLOPPY DRIVE A: 3.5\" 1.44MB .............. OK",
-    "FLOPPY DRIVE B: 5.25\" 1.2MB .............. NOT FOUND",
-    "HARD DISK 0: CC 512MB IDE ............ OK",
-    "HARD DISK 1: NOT DETECTED",
-    "CD-ROM DRIVE D: .......................... OK",
-    "PARALLEL PORT LPT1 ....................... OK",
-    "SERIAL PORTS COM1 COM2 ................... OK",
-    "VIDEO ADAPTER: CC VGA PLUS ........... OK",
-    "VIDEO MEMORY: 1024K DETECTED",
+    "ROM BIOS VERSION",
+    "2.43.07",
+    "COPYRIGHT (C)",
+    "1987-1996",
+    "CC INDUSTRIES",
+    "----------------",
+    "SYSTEM MEMORY",
+    "TESTING ....................",
+    "640K OK",
+    "EXTENDED MEMORY",
+    "CHECK ....................",
+    "16384K OK",
+    "CACHE MEMORY .............................",
+    "ENABLED",
+    "KEYBOARD CONTROLLER",
+    "......................",
+    "OK",
+    "FLOPPY DRIVE A:",
+    "3.5\" 1.44MB ..............",
+    "OK",
+    "FLOPPY DRIVE B:",
+    "5.25\" 1.2MB",
+    "..............",
+    "NOT FOUND",
+    "HARD DISK 0:",
+    "CC 512MB IDE",
+    "............ OK",
+    "HARD DISK 1:",
+    "NOT DETECTED",
+    "CD-ROM DRIVE D: ..........................",
+    "OK",
+    "PARALLEL PORT",
+    "LPT1 .......................",
+    "OK",
+    "SERIAL PORTS",
+    "COM1 COM2 ...................",
+    "OK",
+    "VIDEO ADAPTER:",
+    "CC VGA PLUS ...........",
+    "OK",
+    "VIDEO MEMORY:",
+    "1024K DETECTED",
     "MOUSE DEVICE ............................. OK",
     "DMA CONTROLLERS ......................... OK",
-    "CMOS BATTERY STATUS ..................... GOOD",
-    "SYSTEM CLOCK ............................ 14.318 MHZ",
-    "POST COMPLETE. NO ERRORS FOUND.",
+    "CMOS BATTERY",
+    "STATUS .....................",
+    "GOOD",
+    "SYSTEM CLOCK ............................",
+    "W14.318 MHZ",
+    "POST COMPLETE.",
+    "NO ERRORS FOUND.",
     "",
     "CC BOOT MANAGER v1.22",
     "SCANNING FOR BOOTABLE DEVICES...",
@@ -151,11 +186,23 @@ def boot_sequence():
     utime.sleep(0.5)
     oled_clear()  # Clear OLED after boot
     oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    oled_print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
     utime.sleep(0.5)
     oled_clear()
     oled_print("wellcome to SDOS")
     oled_print("Pi pico")
-    utime.sleep(0.2)
+    utime.sleep(0.3)
+    oled_print("'_'")
+    utime.sleep(0.1)
     
     oled_clear()
 # ---------- Fake File System ----------
@@ -319,7 +366,11 @@ def dos_loop():
                     else:
                         oled_print("Path not found")
         elif cmd == "EXIT":
-            oled_print("System halted.")
+            oled_print("shell halted.")
+            break
+        elif cmd == "poweroff":
+            oled_print("system is turning of")
+            utime.sleep(0.2)
             break
         else:
             oled_print(f"'{cmd}' not recognized")
