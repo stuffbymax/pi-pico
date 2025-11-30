@@ -7,7 +7,9 @@ pin = Pin(0, Pin.OUT)  # GP0 -> DIN
 strip = neopixel.NeoPixel(pin, NUM_PIXELS)
 
 # Define Christmas colors
-colors = [(255, 0, 0), (0, 255, 0)]  # Red and Green
+colors = [(255, 0, 0), (0, 255, 0)]  # Red and
+
+# to add more colors just define it with new RGB value
 
 def christmas_wheel(strip, delay=0.1):
     while True:
